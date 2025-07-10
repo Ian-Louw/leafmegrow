@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "40437778241",
+    "project_id": "leafmegrow-app",
+    "storage_bucket": "leafmegrow-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:40437778241:android:821100304e7cb1c2c603c0",
+        "android_client_info": {
+          "package_name": "com.leafmegrow"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "40437778241-8u3jl0prc9hrijv5om341s9s02uvaq5p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.leafmegrow",
+            "certificate_hash": "6606db2084e05371455851513135d08ee9bf9080"
+          }
+        },
+        {
+          "client_id": "40437778241-ts6kp17ej94v6biq4gpn6d3qmktl4eqc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCu_fxSHhZFPe6VFY9RnKh1QDdAbxRYfnQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "40437778241-ts6kp17ej94v6biq4gpn6d3qmktl4eqc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
