@@ -1,16 +1,20 @@
+// App.tsx
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, StatusBar } from 'react-native';
 import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import auth from '@react-native-firebase/auth';
 
-// Import your screens
+import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
+import { toNavigationTheme } from './src/theme/navigation';
+
+// Screens
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegistrationScreen from './src/screens/auth/RegistrationScreen';
 import HomeScreen from './src/screens/HomeScreen';
 
-// Define the navigation types
+// Types
 export type RootStackParamList = {
   Login: undefined;
   Registration: undefined;
@@ -19,47 +23,60 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const App: React.FC = () => {
+// Extracted so we can use the theme hook inside
+const AppContent: React.FC = () => {
+  const { theme } = useTheme();
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged((user) => {
-      setUser(user);
+    const unsubscribe = auth().onAuthStateChanged((u) => {
+      setUser(u);
       setIsLoading(false);
     });
-
-    // Cleanup subscription on unmount
     return unsubscribe;
   }, []);
 
-  // Show loading screen while checking auth state
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={[
+        styles.loadingContainer,
+        { backgroundColor: theme.colors.background }
+      ]}>
+        <StatusBar
+          barStyle={theme.name === 'dark' ? 'light-content' : 'dark-content'}
+          backgroundColor={theme.colors.background}
+        />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={toNavigationTheme(theme)}>
+      <StatusBar
+        barStyle={theme.name === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={theme.colors.background}
+      />
       <Stack.Navigator
         initialRouteName={user ? 'Home' : 'Login'}
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#007AFF',
+            backgroundColor: theme.colors.surface, // card color
           },
-          headerTintColor: '#ffffff',
+          headerTintColor: theme.colors.text,       // back button / title tint
           headerTitleStyle: {
             fontWeight: 'bold',
+            color: theme.colors.text,
+          },
+          contentStyle: {
+            backgroundColor: theme.colors.background,
           },
         }}
       >
         {user ? (
-          // User is signed in - show authenticated screens
-          <Stack.Screen 
-            name="Home" 
+          <Stack.Screen
+            name="Home"
             component={HomeScreen}
             options={{
               title: 'Home',
@@ -67,22 +84,21 @@ const App: React.FC = () => {
             }}
           />
         ) : (
-          // User is not signed in - show authentication screens
           <>
-            <Stack.Screen 
-              name="Login" 
+            <Stack.Screen
+              name="Login"
               component={LoginScreen}
               options={{
                 title: 'Sign In',
-                headerShown: false, // Hide header for login screen
+                headerShown: false,
               }}
             />
-            <Stack.Screen 
-              name="Registration" 
+            <Stack.Screen
+              name="Registration"
               component={RegistrationScreen}
               options={{
                 title: 'Create Account',
-                headerShown: false, // Hide header for registration screen
+                headerShown: false,
               }}
             />
           </>
@@ -97,8 +113,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
   },
 });
+
+// App root wraps everything with the ThemeProvider
+const App: React.FC = () => {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+};
 
 export default App;

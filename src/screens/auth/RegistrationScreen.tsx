@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 interface RegistrationScreenProps {
   navigation: any;
@@ -23,6 +24,15 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ navigation }) =
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    // Configure Google Sign-In
+    GoogleSignin.configure({
+      webClientId: 'YOUR_WEB_CLIENT_ID_HERE', // Replace with your actual web client ID
+      offlineAccess: true,
+    });
+  }, []);
 
   const validateForm = () => {
     if (!fullName || !email || !password || !confirmPassword) {
@@ -87,6 +97,47 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ navigation }) =
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      // Check if your device supports Google Play
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      
+      // Get the user's ID token
+      const { idToken, user }: any = await GoogleSignin.signIn();
+      
+      // Create a Google credential with the token
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      
+      // Sign-in the user with the credential
+      const userCredential = await auth().signInWithCredential(googleCredential);
+      
+      console.log('Google Sign-In successful:', userCredential.user);
+      // Navigation will be handled by auth state listener in App.tsx
+      
+    } catch (error: any) {
+      console.error('Google Sign-In error:', error);
+      
+      let errorMessage = 'Google Sign-In failed. Please try again.';
+      
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        errorMessage = 'Sign-in cancelled by user.';
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        errorMessage = 'Sign-in already in progress.';
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        errorMessage = 'Google Play Services not available.';
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        errorMessage = 'An account already exists with this email address but with different sign-in credentials.';
+      } else {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      Alert.alert('Google Sign-In Failed', errorMessage);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const navigateToLogin = () => {
     navigation.navigate('Login');
   };
@@ -101,6 +152,27 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ navigation }) =
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Sign up to get started</Text>
 
+          {/* Google Sign Up Button */}
+          <TouchableOpacity 
+            style={[styles.googleButton, googleLoading && styles.buttonDisabled]} 
+            onPress={handleGoogleSignIn}
+            disabled={loading || googleLoading}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.googleButtonText}>Continue with Google</Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>or create account with email</Text>
+            <View style={styles.divider} />
+          </View>
+
+          {/* Form Fields */}
           <TextInput
             style={styles.input}
             placeholder="Full Name"
@@ -138,18 +210,20 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ navigation }) =
             autoComplete="new-password"
           />
 
+          {/* Email Sign Up Button */}
           <TouchableOpacity 
             style={[styles.button, loading && styles.buttonDisabled]} 
             onPress={handleRegistration}
-            disabled={loading}
+            disabled={loading || googleLoading}
           >
             {loading ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.buttonText}>Sign Up</Text>
+              <Text style={styles.buttonText}>Sign Up with Email</Text>
             )}
           </TouchableOpacity>
 
+          {/* Login Link */}
           <TouchableOpacity 
             style={styles.linkButton} 
             onPress={navigateToLogin}
@@ -220,6 +294,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#cccccc',
   },
   buttonText: {
+    color: '#ffffff',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    marginHorizontal: 15,
+    color: '#666',
+    fontSize: 14,
+  },
+  googleButton: {
+    backgroundColor: '#DB4437',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  googleButtonText: {
     color: '#ffffff',
     textAlign: 'center',
     fontSize: 16,

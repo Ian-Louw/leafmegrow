@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import auth from '@react-native-firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 interface HomeScreenProps {
   navigation?: any;
@@ -19,11 +20,17 @@ interface HomeScreenProps {
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isGoogleUser, setIsGoogleUser] = useState(false);
 
   useEffect(() => {
     const currentUser = auth().currentUser;
     if (currentUser) {
       setUser(currentUser);
+      // Check if user signed in with Google
+      const googleProvider = currentUser.providerData.find(
+        provider => provider.providerId === 'google.com'
+      );
+      setIsGoogleUser(!!googleProvider);
     }
   }, []);
 
@@ -41,6 +48,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Sign out from Google if user signed in with Google
+              if (isGoogleUser) {
+                await GoogleSignin.signOut();
+              }
+              
+              // Sign out from Firebase
               await auth().signOut();
               // Navigation will be handled by auth state listener in App.tsx
             } catch (error: any) {
@@ -55,7 +68,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    // Simulate refresh - you can add actual data fetching here
+    // Refresh user data
+    const currentUser = auth().currentUser;
+    if (currentUser) {
+      await currentUser.reload();
+      setUser(auth().currentUser);
+    }
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
@@ -69,6 +87,29 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  const getSignInMethod = () => {
+    if (!user || !user.providerData || user.providerData.length === 0) {
+      return 'Unknown';
+    }
+    
+    const providers = user.providerData.map(provider => {
+      switch (provider.providerId) {
+        case 'google.com':
+          return 'Google';
+        case 'password':
+          return 'Email/Password';
+        case 'facebook.com':
+          return 'Facebook';
+        case 'twitter.com':
+          return 'Twitter';
+        default:
+          return provider.providerId;
+      }
+    });
+    
+    return providers.join(', ');
   };
 
   return (
@@ -103,6 +144,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Text style={styles.infoValue}>{user?.email}</Text>
           </View>
           <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Sign-in Method:</Text>
+            <Text style={styles.infoValue}>{getSignInMethod()}</Text>
+          </View>
+          <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Email Verified:</Text>
             <Text style={[
               styles.infoValue,
@@ -115,6 +160,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Text style={styles.infoLabel}>Member Since:</Text>
             <Text style={styles.infoValue}>
               {formatDate(user?.metadata?.creationTime)}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Last Sign In:</Text>
+            <Text style={styles.infoValue}>
+              {formatDate(user?.metadata?.lastSignInTime)}
             </Text>
           </View>
         </View>
@@ -139,12 +190,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Text style={styles.actionButtonText}>Update Profile</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => Alert.alert('Info', 'Password change feature would be implemented here')}
-          >
-            <Text style={styles.actionButtonText}>Change Password</Text>
-          </TouchableOpacity>
+          {/* Only show change password for email/password users */}
+          {!isGoogleUser && (
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => Alert.alert('Info', 'Password change feature would be implemented here')}
+            >
+              <Text style={styles.actionButtonText}>Change Password</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* App Features */}
