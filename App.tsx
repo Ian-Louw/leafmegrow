@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, ActivityIndicator, StyleSheet, StatusBar } from 'react-native';
+import { StatusBar } from 'react-native';
 import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import auth from '@react-native-firebase/auth';
 
@@ -10,12 +10,15 @@ import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
 import { toNavigationTheme } from './src/theme/navigation';
 
 // Screens
+import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegistrationScreen from './src/screens/auth/RegistrationScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import LoadScreen from './src/screens/LoadScreen';
 
 // Types
 export type RootStackParamList = {
+  Welcome: undefined;
   Login: undefined;
   Registration: undefined;
   Home: undefined;
@@ -39,16 +42,13 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-      <View style={[
-        styles.loadingContainer,
-        { backgroundColor: theme.colors.background }
-      ]}>
+      <>
         <StatusBar
           barStyle={theme.name === 'dark' ? 'light-content' : 'dark-content'}
           backgroundColor={theme.colors.background}
         />
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
+        <LoadScreen />
+      </>
     );
   }
 
@@ -59,19 +59,13 @@ const AppContent: React.FC = () => {
         backgroundColor={theme.colors.background}
       />
       <Stack.Navigator
-        initialRouteName={user ? 'Home' : 'Login'}
+        initialRouteName={user ? 'Home' : 'Welcome'}
         screenOptions={{
-          headerStyle: {
-            backgroundColor: theme.colors.surface, // card color
-          },
-          headerTintColor: theme.colors.text,       // back button / title tint
-          headerTitleStyle: {
-            fontWeight: 'bold',
-            color: theme.colors.text,
-          },
+          headerShown: false, // Hide headers for custom designs
           contentStyle: {
             backgroundColor: theme.colors.background,
           },
+          animation: 'slide_from_right',
         }}
       >
         {user ? (
@@ -80,17 +74,32 @@ const AppContent: React.FC = () => {
             component={HomeScreen}
             options={{
               title: 'Home',
+              headerShown: true,
+              headerStyle: {
+                backgroundColor: theme.colors.surface,
+              },
+              headerTintColor: theme.colors.text,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+                color: theme.colors.text,
+              },
               headerLeft: () => null, // Prevent going back
             }}
           />
         ) : (
           <>
             <Stack.Screen
+              name="Welcome"
+              component={WelcomeScreen}
+              options={{
+                title: 'Welcome',
+              }}
+            />
+            <Stack.Screen
               name="Login"
               component={LoginScreen}
               options={{
                 title: 'Sign In',
-                headerShown: false,
               }}
             />
             <Stack.Screen
@@ -98,7 +107,6 @@ const AppContent: React.FC = () => {
               component={RegistrationScreen}
               options={{
                 title: 'Create Account',
-                headerShown: false,
               }}
             />
           </>
@@ -107,14 +115,6 @@ const AppContent: React.FC = () => {
     </NavigationContainer>
   );
 };
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
 
 // App root wraps everything with the ThemeProvider
 const App: React.FC = () => {
